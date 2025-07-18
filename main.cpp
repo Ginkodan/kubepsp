@@ -12,8 +12,8 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 
-PSP_MODULE_INFO("K8s Dashboard PSP", 0, 1, 0);
-PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
+PSP_MODULE_INFO("K8s Dashboard PSP", PSP_MODULE_USER, 1, 0);
+PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER);
 
 int exit_callback(int arg1, int arg2, void *common)
 {
@@ -103,10 +103,6 @@ int fetch_k8s_data()
         strcat(response, buffer);
         total += received;
     }
-
-    // Debug: print the first part of the response
-    pspDebugScreenSetXY(0, 8);
-    pspDebugScreenPrintf("RAW:\n%.200s\n", response);
 
     // Move pointer to JSON body
     char *json = strstr(response, "\r\n\r\n");
