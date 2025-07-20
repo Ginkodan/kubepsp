@@ -5,12 +5,12 @@
 #include <pspnet.h>
 #include <pspnet_inet.h>
 #include <pspnet_apctl.h>
-#include <pspnet_adhoc.h> // Added for sceNetHtons
-#include <arpa/inet.h>    // Added for inet_addr
+#include <arpa/inet.h> // Added for inet_addr
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <netinet/in.h>
+#include <curl/curl.h>
 
 PSP_MODULE_INFO("K8s Dashboard PSP", PSP_MODULE_USER, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER);
@@ -77,12 +77,21 @@ int fetch_k8s_data()
     if (sock < 0)
         return -1;
 
+    unsigned int opt = 0;
+    sceNetInetSetsockopt(sock, SOL_SOCKET, SO_NONBLOCK, &opt, sizeof(opt));
+
     memset(&server, 0, sizeof(server));
     server.sin_family = AF_INET;
     server.sin_port = htons(3000);                       // port of your Node.js proxy
     server.sin_addr.s_addr = inet_addr("192.168.2.130"); // change to your PC IP
 
-    if (sceNetInetConnect(sock, (struct sockaddr *)&server, sizeof(server)) < 0)
+    int result = sceNetInetConnect(sock, (struct sockaddr *)&server, sizeof(server));
+    if (result < 0)
+    {
+        pspDebugScreenPrintf("Connection failed. Error code: 0x%08X\n", result);
+    }
+
+    if (result < 0)
     {
         pspDebugScreenPrintf("Connection failed\n");
         sceNetInetClose(sock);
@@ -97,12 +106,37 @@ int fetch_k8s_data()
     int received = 0;
     int total = 0;
     char response[4096] = {0};
-    while ((received = sceNetInetRecv(sock, buffer, sizeof(buffer) - 1, 0)) > 0 && total < sizeof(response) - 1)
+
+    int retries = 10; // up to 10 tries
+    int delay_ms = 200;
+
+    do
     {
-        buffer[received] = '\0';
-        strcat(response, buffer);
-        total += received;
-    }
+        received = sceNetInetRecv(sock, buffer, sizeof(buffer), 0);
+        int err = sceNetInetGetErrno();
+        pspDebugScreenPrintf("sceNetInetRecv returned: %d (errno: %d)\n", received, err);
+
+        if (received == -1 && err == 11) // EAGAIN
+        {
+            pspDebugScreenPrintf("No data yet, retrying...\n");
+            sceKernelDelayThread(delay_ms * 1000); // wait a bit
+            retries--;
+            continue;
+        }
+
+        if (received > 0 && (size_t)(total + received) < sizeof(response) - 1)
+        {
+            memcpy(response + total, buffer, received);
+            total += received;
+            response[total] = '\0';
+            pspDebugScreenPrintf("Received: %d bytes\n", received);
+        }
+        else
+        {
+            break;
+        }
+
+    } while (retries > 0);
 
     // Move pointer to JSON body
     char *json = strstr(response, "\r\n\r\n");
@@ -123,14 +157,14 @@ int fetch_k8s_data()
         {
             name_start += 8;
             char *name_end = strchr(name_start, '"');
-            if (name_end && name_end - name_start < sizeof(name))
+            if (name_end && static_cast<size_t>(name_end - name_start) < sizeof(name)) // Typkorrektur
             {
                 strncpy(name, name_start, name_end - name_start);
                 name[name_end - name_start] = '\0';
             }
             status_start += 10;
             char *status_end = strchr(status_start, '"');
-            if (status_end && status_end - status_start < sizeof(status))
+            if (status_end && static_cast<size_t>(status_end - status_start) < sizeof(status)) // Typkorrektur
             {
                 strncpy(status, status_start, status_end - status_start);
                 status[status_end - status_start] = '\0';
@@ -173,7 +207,7 @@ int main()
             else
                 pspDebugScreenPrintf("PSP IP: (error)\n");
 
-            pspDebugScreenPrintf("Press [] to fetch from Kubernetes\n");
+            pspDebugScreenPrintf("Press [] to fetch from Kubernetes2\n");
             wifi_connected = 1;
         }
         if ((pad.Buttons & PSP_CTRL_SQUARE) && wifi_connected)
