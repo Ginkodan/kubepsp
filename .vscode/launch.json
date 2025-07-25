@@ -2,16 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run PSP Homebrew (no debugger)",
+      "name": "Run PSP Homebrew with PPSSPP (Flatpak)",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/kubepsp.elf",
-      "args": [],
-      "stopAtEntry": false,
-      "cwd": "${workspaceFolder}/build",
-      "externalConsole": true,
-      "MIMode": "gdb",
-      "miDebuggerPath": "/usr/bin/gdb" // or psp-gdb if available
+      "program": "/usr/bin/flatpak",
+      "args": [
+        "run",
+        "org.ppsspp.PPSSPP",
+        "${workspaceFolder}/build/EBOOT.PBP"
+      ],
+      "cwd": "${workspaceFolder}"
     }
   ]
 }
