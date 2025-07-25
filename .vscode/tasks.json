@@ -27,7 +27,7 @@
     {
       "label": "Run in PPSSPP (optional)",
       "type": "shell",
-      "command": "ppsspp",
+      "command": "flatpak run org.ppsspp.PPSSPP",
       "args": [
         "${workspaceFolder}/build/EBOOT.PBP"
       ],
