@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run PSP Homebrew (no debugger)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/kubepsp.elf",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/build",
+      "externalConsole": true,
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb" // or psp-gdb if available
+    }
+  ]
+}
