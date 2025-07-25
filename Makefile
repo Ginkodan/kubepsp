@@ -1,6 +1,7 @@
 TARGET = $(BUILD_DIR)/kubepsp
 BUILD_DIR = build
 OBJS = $(BUILD_DIR)/main.o
+LIBS = -lgu -lgum -lpspdebug -lpspdisplay -lpspctrl -lm
 
 # Compiler and flags
 CFLAGS = -O0 -Wall -g
